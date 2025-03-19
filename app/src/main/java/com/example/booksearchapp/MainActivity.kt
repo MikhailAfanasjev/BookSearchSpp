@@ -1,47 +1,71 @@
 package com.example.booksearchapp
 
+import android.os.Build
 import android.os.Bundle
+import android.util.TypedValue
+import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.booksearchapp.ui.theme.BookSearchAppTheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.doOnLayout
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.example.booksearchapp.presentation.navigation.BottomBar
+import com.example.booksearchapp.presentation.navigation.NavGraph
+import com.example.linguareader.R
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+
         setContent {
-            BookSearchAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
+            MaterialTheme {
+                // Обновление системных панелей после рендера
+                DisposableEffect(Unit) {
+                    updateSystemBars()
+                    onDispose { }
+                }
+
+                val navController = rememberNavController()
+                val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = currentBackStackEntry?.destination?.route ?: ""
+
+                Scaffold(
+                    bottomBar = {
+                        if (!currentRoute.startsWith("detail")) {
+                            BottomBar(navController = navController)
+                        }
+                    }
+                ) { innerPadding ->
+                    NavGraph(
+                        navController = navController,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    private fun updateSystemBars() {
+        // Установка белого цвета для статус-бара
+        window.statusBarColor = Color.White.toArgb()
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    BookSearchAppTheme {
-        Greeting("Android")
+        // Настройка черных иконок
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = true // Черные иконки
+            isAppearanceLightNavigationBars = true // Для навигационной панели тоже
+        }
     }
 }
