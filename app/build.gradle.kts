@@ -74,6 +74,11 @@ dependencies {
     implementation(libs.okhttp3)
     implementation(libs.okhttp3Logging)
 
+    //Room
+    implementation(libs.androidx.room.runtime)
+    kapt(libs.androidx.room.compiler)
+    implementation(libs.androidx.room.ktx)
+
     //Coroutines
     implementation(libs.coroutinesCore)
     implementation(libs.coroutinesAndroid)
