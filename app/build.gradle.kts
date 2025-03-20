@@ -12,7 +12,6 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        buildConfigField("String", "API_KEY", "\"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\"")
         applicationId = "com.example.linguareader"
         minSdk = 29
         targetSdk = 34
