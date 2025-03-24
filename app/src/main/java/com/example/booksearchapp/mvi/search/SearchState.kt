@@ -1,6 +1,6 @@
 package com.example.booksearchapp.mvi.search
 
-/** Состояние экрана избранного */
+/** Состояние экрана поиска */
 import com.example.booksearchapp.data.remote.model.Book
 
 data class SearchState(

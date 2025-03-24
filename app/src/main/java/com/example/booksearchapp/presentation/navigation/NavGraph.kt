@@ -24,25 +24,16 @@ fun NavGraph(navController: NavHostController, modifier: Modifier = Modifier) {
             SearchScreen(navController = navController)
         }
         composable("favorites") {
-            FavoritesScreen(onBookClick = { bookId ->
-                navController.navigate("detail/$bookId")
-            })
+            FavoritesScreen(
+                navController = navController,
+                onBookClick = { bookId ->
+                    navController.navigate("detail/$bookId")
+                }
+            )
         }
         composable("detail/{bookId}") { backStackEntry ->
             val bookId = backStackEntry.arguments?.getString("bookId") ?: ""
-            val searchViewModel: SearchViewModel = hiltViewModel()
-            val favoritesViewModel: FavoritesViewModel = hiltViewModel()
-
-            // Загрузка данных о книге по bookId
-            val book = searchViewModel.getBookById(bookId)
-                ?: favoritesViewModel.getBookById(bookId)
-
-            if (book != null) {
-                BookDetailScreen(book = book)
-            } else {
-                // Обработка случая, когда книга не найдена
-                Text("Информация о книге недоступна")
-            }
+            BookDetailScreen(bookId = bookId)
         }
     }
 }

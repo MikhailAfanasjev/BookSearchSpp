@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.booksearchapp.mvi.favorites.FavoritesIntent
 import com.example.booksearchapp.mvi.favorites.FavoritesViewModel
 import com.example.booksearchapp.mvi.search.SearchIntent
 import com.example.booksearchapp.mvi.search.SearchViewModel
@@ -64,7 +65,7 @@ fun SearchScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(44.dp),
+                    .height(48.dp),
                 placeholder = {
                     Text(
                         stringResource(R.string.search),
@@ -126,8 +127,10 @@ fun SearchScreen(
                                 BookItem(
                                     book = book,
                                     isFavorite = favoritesState.favorites.any { it.id == book.id },
-                                    onFavoriteClick = { /* Ваш код */ },
-                                    onBookClick = { navController.navigate("detail/${book.id}") }
+                                    onFavoriteClick = { favoritesViewModel.processIntent(FavoritesIntent.ToggleFavorite(book)) },
+                                    onBookClick = { bookId ->
+                                        navController.navigate("detail/$bookId")
+                                    }
                                 )
                             }
                         }

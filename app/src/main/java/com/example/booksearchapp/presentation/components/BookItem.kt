@@ -31,13 +31,13 @@ fun BookItem(
     book: Book,
     isFavorite: Boolean,
     onFavoriteClick: () -> Unit,
-    onBookClick: () -> Unit
+    onBookClick: (String) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .clickable(onClick = onBookClick),
+            .clickable { onBookClick(book.id) },
         colors = CardDefaults.cardColors(containerColor = White)
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {

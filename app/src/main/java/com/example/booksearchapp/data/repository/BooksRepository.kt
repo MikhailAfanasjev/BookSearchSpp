@@ -68,7 +68,37 @@ class BooksRepository @Inject constructor(
             )
         }
     }
-    suspend fun isFavorite(bookId: String): Boolean {
-        return bookDao.isFavorite(bookId)
+
+    suspend fun getBookById(bookId: String): Book {
+        booksCache[bookId]?.let { return it }
+
+        val isFavorite = bookDao.isFavorite(bookId)
+        if (isFavorite) {
+            bookDao.getFavorites().find { it.id == bookId }?.let { entity ->
+                return Book(
+                    id = entity.id,
+                    title = entity.title,
+                    authors = entity.authors.split(", ").filter { it.isNotBlank() },
+                    publishedDate = entity.publishedDate,
+                    description = entity.description,
+                    thumbnail = entity.thumbnail
+                ).also { booksCache[bookId] = it }
+            }
+        }
+
+        val response = api.getBookById(bookId)
+        if (response.isSuccessful) {
+            val item = response.body() ?: throw Exception("Book not found")
+            return Book(
+                id = item.id,
+                title = item.volumeInfo.title,
+                authors = item.volumeInfo.authors,
+                publishedDate = item.volumeInfo.publishedDate,
+                description = item.volumeInfo.description,
+                thumbnail = item.volumeInfo.imageLinks?.thumbnail
+            ).also { booksCache[bookId] = it }
+        } else {
+            throw Exception("Ошибка загрузки книги")
+        }
     }
 }

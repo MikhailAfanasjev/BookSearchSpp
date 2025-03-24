@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** ViewModel для поиска */
+/** ViewModel для избранного */
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
     private val repository: BooksRepository
@@ -32,13 +32,16 @@ class FavoritesViewModel @Inject constructor(
         }
     }
 
-    private fun loadFavorites() {
+    // Сделали функцию публичной
+    fun loadFavorites() {
         viewModelScope.launch {
             try {
                 val favorites = repository.getFavorites()
+                Log.d("FavoritesViewModel", "Favorites loaded: ${favorites.size}")
                 _state.update { it.copy(favorites = favorites) }
             } catch (e: Exception) {
-                // Обработка ошибки загрузки
+                Log.e("FavoritesViewModel", "Error loading favorites", e)
+                _state.update { it.copy(error = e.message) }
             }
         }
     }
@@ -46,26 +49,15 @@ class FavoritesViewModel @Inject constructor(
     private fun toggleFavorite(book: Book) {
         viewModelScope.launch {
             try {
-                // Используем прямой запрос к DAO через репозиторий
-                val isFavorite = repository.isFavorite(book.id) // <-- Важное изменение!
-
-                if (isFavorite) {
+                if (state.value.favorites.any { it.id == book.id }) {
                     repository.removeFavorite(book)
-                    _state.update { currentState ->
-                        currentState.copy(favorites = currentState.favorites - book)
-                    }
                 } else {
                     repository.addFavorite(book)
-                    _state.update { currentState ->
-                        currentState.copy(favorites = currentState.favorites + book)
-                    }
                 }
+                loadFavorites()
             } catch (e: Exception) {
-                Log.e("FAVORITES", "Error toggling favorite", e)
+                _state.update { it.copy(error = e.message) }
             }
         }
-    }
-    fun getBookById(bookId: String): Book? {
-        return state.value.favorites.firstOrNull { it.id == bookId }
     }
 }
