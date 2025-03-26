@@ -13,10 +13,16 @@ class BooksRepository @Inject constructor(
     private val booksCache: MutableMap<String, Book> = mutableMapOf<String, Book>()
 ) {
 
-    suspend fun searchBooks(query: String, orderBy: String? = null): List<Book> {
-        val response = api.getBooks(query)
+    suspend fun searchBooks(query: String, orderBy: String? = null, author: String? = null): List<Book> {
+        // Здесь можно добавить логику для фильтрации по авторам.
+        // Если API не поддерживает фильтрацию по авторам, то можно выполнить локальную фильтрацию:
+        val apiOrderBy = when(orderBy) {
+            "date" -> "newest"
+            else -> null
+        }
+        val response = api.getBooks(query, apiOrderBy)
         if (response.isSuccessful) {
-            return response.body()?.items?.map { item ->
+            var books = response.body()?.items?.map { item ->
                 Book(
                     id = item.id,
                     title = item.volumeInfo.title,
@@ -26,10 +32,19 @@ class BooksRepository @Inject constructor(
                     thumbnail = item.volumeInfo.imageLinks?.thumbnail
                 )
             } ?: emptyList()
+
+            // Если введён фильтр по авторам, оставляем книги, в списке авторов которых встречается введённый текст
+            author?.takeIf { it.isNotBlank() }?.let { filterText ->
+                books = books.filter { book ->
+                    book.authors?.any { it.contains(filterText, ignoreCase = true) } ?: false
+                }
+            }
+            return books
         } else {
             throw Exception("Ошибка запроса: ${response.errorBody()?.string()}")
         }
     }
+
     suspend fun addFavorite(book: Book) {
         bookDao.insert(
             BookEntity(

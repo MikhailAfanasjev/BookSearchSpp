@@ -1,5 +1,6 @@
 package com.example.booksearchapp.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil3.compose.AsyncImage
 import com.example.booksearchapp.mvi.detail.BookDetailViewModel
+import com.example.booksearchapp.presentation.ui.theme.White
 
 @Composable
 fun BookDetailScreen(bookId: String) {
@@ -41,6 +43,8 @@ fun BookDetailScreen(bookId: String) {
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(White)
     ) {
         when {
             isLoading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
@@ -50,15 +54,15 @@ fun BookDetailScreen(bookId: String) {
                     modifier = Modifier
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
                 ) {
                     AsyncImage(
                         model = book!!.thumbnail,
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(250.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
+                            .height(250.dp),
+                        contentScale = ContentScale.Fit // изменили масштабирование, чтобы изображение не обрезалось
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(

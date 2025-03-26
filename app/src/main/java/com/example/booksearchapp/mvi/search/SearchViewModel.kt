@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** ViewModel для поиска */
 @HiltViewModel
 class SearchViewModel @Inject constructor(
     private val repository: BooksRepository
@@ -31,10 +30,30 @@ class SearchViewModel @Inject constructor(
                 _state.update { it.copy(query = intent.query, isLoading = true, error = null) }
                 searchJob?.cancel()
                 searchJob = viewModelScope.launch {
-                    // Запускаем запрос через 2 секунды после ввода (или по нажатию action на клавиатуре)
                     delay(2000L)
                     try {
-                        val books = repository.searchBooks(intent.query)
+                        val books = repository.searchBooks(
+                            intent.query,
+                            _state.value.sortOrder,
+                            _state.value.author
+                        )
+                        _state.update { it.copy(books = books, isLoading = false) }
+                    } catch (e: Exception) {
+                        _state.update { it.copy(error = "Ошибка выполнения запроса, попробуйте повторить", isLoading = false) }
+                    }
+                }
+            }
+            is SearchIntent.ChangeFilter -> {
+                _state.update { it.copy(sortOrder = intent.sortOrder, author = intent.author, isLoading = true) }
+                searchJob?.cancel()
+                searchJob = viewModelScope.launch {
+                    delay(500L)
+                    try {
+                        val books = repository.searchBooks(
+                            _state.value.query,
+                            intent.sortOrder,
+                            intent.author
+                        )
                         _state.update { it.copy(books = books, isLoading = false) }
                     } catch (e: Exception) {
                         _state.update { it.copy(error = "Ошибка выполнения запроса, попробуйте повторить", isLoading = false) }
