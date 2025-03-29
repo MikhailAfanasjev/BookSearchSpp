@@ -1,10 +1,13 @@
 package com.example.booksearchapp.mvi.favorites
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.booksearchapp.data.remote.model.Book
 import com.example.booksearchapp.data.repository.BooksRepository
+import com.example.linguareader.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -13,11 +16,11 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** ViewModel для избранного */
 @HiltViewModel
 class FavoritesViewModel @Inject constructor(
+    application: Application,
     private val repository: BooksRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(FavoritesState())
     val state: StateFlow<FavoritesState> = _state.asStateFlow()
@@ -32,31 +35,61 @@ class FavoritesViewModel @Inject constructor(
         }
     }
 
-    // Сделали функцию публичной
     fun loadFavorites() {
         viewModelScope.launch {
             try {
                 val favorites = repository.getFavorites()
-                Log.d("FavoritesViewModel", "Favorites loaded: ${favorites.size}")
                 _state.update { it.copy(favorites = favorites) }
             } catch (e: Exception) {
-                Log.e("FavoritesViewModel", "Error loading favorites", e)
-                _state.update { it.copy(error = e.message) }
+                _state.update {
+                    it.copy(
+                        error = getApplication<Application>().getString(R.string.request_execution_error),
+                        message = null
+                    )
+                }
             }
         }
     }
 
     private fun toggleFavorite(book: Book) {
         viewModelScope.launch {
-            try {
-                if (state.value.favorites.any { it.id == book.id }) {
+            // Если книга уже в избранном – пытаемся удалить
+            if (state.value.favorites.any { it.id == book.id }) {
+                try {
                     repository.removeFavorite(book)
-                } else {
-                    repository.addFavorite(book)
+                    _state.update {
+                        it.copy(
+                            message = getApplication<Application>().getString(R.string.successfully_removing_favorites),
+                            error = null
+                        )
+                    }
+                    loadFavorites()
+                } catch (e: Exception) {
+                    _state.update {
+                        it.copy(
+                            error = getApplication<Application>().getString(R.string.error_removing_favorites),
+                            message = null
+                        )
+                    }
                 }
-                loadFavorites()
-            } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
+            } else { // Иначе – пытаемся добавить в избранное
+                try {
+                    repository.addFavorite(book)
+                    _state.update {
+                        it.copy(
+                            message = getApplication<Application>().getString(R.string.successfully_added_favorites),
+                            error = null
+                        )
+                    }
+                    loadFavorites()
+                } catch (e: Exception) {
+                    _state.update {
+                        it.copy(
+                            error = getApplication<Application>().getString(R.string.error_added_favorites),
+                            message = null
+                        )
+                    }
+                }
             }
         }
     }

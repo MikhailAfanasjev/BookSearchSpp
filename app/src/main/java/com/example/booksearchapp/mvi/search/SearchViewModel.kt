@@ -2,7 +2,6 @@ package com.example.booksearchapp.mvi.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.booksearchapp.data.remote.model.Book
 import com.example.booksearchapp.data.repository.BooksRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -64,9 +63,5 @@ class SearchViewModel @Inject constructor(
                 onIntent(SearchIntent.SearchQuery(_state.value.query))
             }
         }
-    }
-
-    fun getBookById(bookId: String): Book? {
-        return state.value.books.firstOrNull { it.id == bookId }
     }
 }

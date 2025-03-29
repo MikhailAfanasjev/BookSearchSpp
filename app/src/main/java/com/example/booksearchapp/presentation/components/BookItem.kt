@@ -1,11 +1,14 @@
 package com.example.booksearchapp.presentation.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -17,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -60,20 +64,25 @@ fun BookItem(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier
                         .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp)) // Закругляем обложку
+                        .clip(RoundedCornerShape(16.dp)) // Закругляем обложку
                 )
 
                 // Иконка избранного
-                IconButton(
-                    onClick = onFavoriteClick,
+                Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
+                        .background(color = Color.White, shape = CircleShape)
+                        .clickable(onClick = onFavoriteClick)
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_favorite),
                         contentDescription = "Избранное",
-                        tint = if (isFavorite) Color.Red else Color.White
+                        tint = if (isFavorite) Color.Red else Color.Gray,
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(28.dp)
+                            .padding(4.dp)
                     )
                 }
             }
