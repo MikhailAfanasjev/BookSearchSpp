@@ -1,6 +1,5 @@
 package com.example.booksearchapp.presentation.screens
 
-import android.widget.Toast
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -8,7 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,12 +25,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.ripple.LocalRippleTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +51,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -83,7 +86,7 @@ import com.example.booksearchapp.utils.NoRippleTheme
 import com.example.booksearchapp.utils.showCustomToast
 import com.example.linguareader.R
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     navController: NavHostController,
@@ -103,11 +106,23 @@ fun SearchScreen(
         }
     }
 
-    // Локальное состояние для показа фильтров
     var showFilterPanel by remember { mutableStateOf(false) }
-    // Состояния для ввода автора и выбора сортировки
     var authorFilter by remember { mutableStateOf("") }
     var selectedSort by remember { mutableStateOf<String?>(null) }
+
+    // Создаём LazyGridState для отслеживания прокрутки
+    val lazyGridState = rememberLazyGridState()
+
+    // Отслеживаем прокрутку до конца списка для подгрузки новых книг
+    LaunchedEffect(lazyGridState) {
+        snapshotFlow { lazyGridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collect { lastVisibleIndex ->
+                // Если индекс последнего видимого элемента близок к концу списка (например, за 4 элемента до конца), то вызываем подгрузку
+                if (lastVisibleIndex != null && lastVisibleIndex >= searchState.books.size - 4) {
+                    searchViewModel.onIntent(SearchIntent.LoadMore)
+                }
+            }
+    }
 
     Scaffold { paddingValues ->
         Box(
@@ -151,7 +166,6 @@ fun SearchScreen(
                         trailingIcon = {
                             if (searchState.query.isNotEmpty()) {
                                 IconButton(onClick = {
-                                    // Очистка текста поиска
                                     searchViewModel.onIntent(SearchIntent.SearchQuery(""))
                                 }) {
                                     Icon(
@@ -191,7 +205,9 @@ fun SearchScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.ic_filter),
                             contentDescription = "Фильтры",
-                            tint = (if (selectedSort == "best" || selectedSort == "date" || authorFilter.isNotEmpty()) colorResource(R.color.blue) else LightGray),
+                            tint = (if (selectedSort == "best" || selectedSort == "date" || authorFilter.isNotEmpty())
+                                colorResource(R.color.blue)
+                            else LightGray)
                         )
                     }
                 }
@@ -205,7 +221,6 @@ fun SearchScreen(
                             .padding(start = 8.dp, end = 8.dp),
                         horizontalArrangement = Arrangement.Start
                     ) {
-                        // Если выбран тип сортировки
                         if (selectedSort == "best") {
                             FilterChip(
                                 text = "Лучшее совпадение",
@@ -217,7 +232,6 @@ fun SearchScreen(
                                 onRemove = { selectedSort = null }
                             )
                         }
-                        // Если введён автор
                         if (authorFilter.isNotEmpty()) {
                             FilterChip(
                                 text = authorFilter,
@@ -227,7 +241,7 @@ fun SearchScreen(
                     }
                 }
 
-                // Основной контент экрана: поиск, список и т.д.
+                // Основной контент экрана
                 if (searchState.query.isEmpty()) {
                     Box(
                         modifier = Modifier
@@ -247,8 +261,8 @@ fun SearchScreen(
                     }
                 } else {
                     when {
-                        searchState.isLoading -> {
-                            // Показ индикатора загрузки
+                        searchState.isLoading && searchState.books.isEmpty() -> {
+                            // Показ индикатора загрузки при первичной загрузке
                         }
                         searchState.error != null -> {
                             Box(
@@ -284,6 +298,7 @@ fun SearchScreen(
                         searchState.books.isNotEmpty() -> {
                             LazyVerticalGrid(
                                 columns = GridCells.Fixed(2),
+                                state = lazyGridState,
                                 modifier = Modifier
                                     .fillMaxSize()
                                     .padding(top = 8.dp)
@@ -313,6 +328,18 @@ fun SearchScreen(
                                         )
                                     }
                                 }
+                                if (searchState.isLoading) {
+                                    item(span = { GridItemSpan(2) }) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator()
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -338,17 +365,15 @@ fun SearchScreen(
                 }
             }
 
-            // Оверлей с фильтрами (панель), поверх основного контента
+            // Оверлей с фильтрами
             if (showFilterPanel) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Затемнение экрана с кликом для закрытия панели
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color.Black.copy(alpha = 0.5f))
                             .clickable { showFilterPanel = false }
                     )
-                    // Карточка с фильтрами, выровненная по верхней части экрана
                     Surface(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
@@ -376,8 +401,6 @@ fun SearchScreen(
                                 textAlign = TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-
-                            // Поле ввода автора
                             Text(
                                 text = "Авторы",
                                 style = MaterialTheme.typography.bodyMedium
@@ -419,16 +442,12 @@ fun SearchScreen(
                                     cursorColor = Color.Black
                                 )
                             )
-
                             Spacer(modifier = Modifier.height(8.dp))
-
-                            // Заголовок "Сортировать"
                             Text(
                                 text = "Сортировать",
                                 style = MaterialTheme.typography.bodyMedium
                             )
                             Spacer(modifier = Modifier.height(4.dp))
-
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -452,7 +471,6 @@ fun SearchScreen(
                                         Text(text = stringResource(R.string.by_date))
                                     }
                                 }
-
                                 CompositionLocalProvider(LocalRippleTheme provides NoRippleTheme) {
                                     Button(
                                         onClick = { selectedSort = "best" },
@@ -473,17 +491,14 @@ fun SearchScreen(
                                     }
                                 }
                             }
-
                             Spacer(modifier = Modifier.height(8.dp))
-
                             Button(
                                 onClick = {
-                                    // Применяем фильтры
                                     searchViewModel.onIntent(
                                         SearchIntent.ChangeFilter(
                                             sortOrder = when (selectedSort) {
                                                 "date" -> "date"
-                                                "best" -> null
+                                                "best" -> "best"
                                                 else -> null
                                             },
                                             author = authorFilter
@@ -497,7 +512,7 @@ fun SearchScreen(
                                     containerColor = if (selectedSort != null || authorFilter.isNotEmpty()) {
                                         colorResource(id = R.color.blue)
                                     } else {
-                                        Color.White
+                                        colorResource(id = R.color.ultra_light_gray)
                                     },
                                     contentColor = if (selectedSort != null || authorFilter.isNotEmpty()) Color.White else Color.Black
                                 )
@@ -508,32 +523,32 @@ fun SearchScreen(
                     }
                 }
             }
+        }
 
-            // Индикатор загрузки поверх основного контента
-            if (searchState.isLoading) {
-                val infiniteTransition = rememberInfiniteTransition()
-                val angle by infiniteTransition.animateFloat(
-                    initialValue = 0f,
-                    targetValue = 360f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(durationMillis = 1000, easing = LinearEasing),
-                        repeatMode = RepeatMode.Restart
-                    )
+        // Индикатор загрузки поверх основного контента
+        if (searchState.isLoading && searchState.books.isEmpty()) {
+            val infiniteTransition = rememberInfiniteTransition()
+            val angle by infiniteTransition.animateFloat(
+                initialValue = 0f,
+                targetValue = 360f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 1000, easing = LinearEasing),
+                    repeatMode = RepeatMode.Restart
                 )
-                Box(
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_loading_spin),
+                    contentDescription = "Loading",
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Transparent),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_loading_spin),
-                        contentDescription = "Loading",
-                        modifier = Modifier
-                            .size(48.dp)
-                            .rotate(angle)
-                    )
-                }
+                        .size(48.dp)
+                        .rotate(angle)
+                )
             }
         }
     }

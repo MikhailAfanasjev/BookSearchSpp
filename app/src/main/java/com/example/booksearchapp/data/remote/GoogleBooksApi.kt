@@ -12,8 +12,11 @@ interface GoogleBooksApi {
     @GET("volumes")
     suspend fun getBooks(
         @Query("q") query: String,
-        @Query("orderBy") orderBy: String? = null
+        @Query("orderBy") orderBy: String? = null,
+        @Query("startIndex") startIndex: Int = 0,
+        @Query("maxResults") maxResults: Int = 20
     ): Response<BooksResponse>
+
     @GET("volumes/{bookId}")
     suspend fun getBookById(
         @Path("bookId") bookId: String

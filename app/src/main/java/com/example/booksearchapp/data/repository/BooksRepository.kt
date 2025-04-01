@@ -4,6 +4,9 @@ import com.example.booksearchapp.data.local.dao.BookDao
 import com.example.booksearchapp.data.local.entity.BookEntity
 import com.example.booksearchapp.data.remote.model.Book
 import com.example.booksearchapp.data.remote.GoogleBooksApi
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 /** Репозиторий для получения данных */
@@ -13,14 +16,19 @@ class BooksRepository @Inject constructor(
     private val booksCache: MutableMap<String, Book> = mutableMapOf<String, Book>()
 ) {
 
-    suspend fun searchBooks(query: String, orderBy: String? = null, author: String? = null): List<Book> {
-        // Здесь можно добавить логику для фильтрации по авторам.
-        // Если API не поддерживает фильтрацию по авторам, то можно выполнить локальную фильтрацию:
+    suspend fun searchBooks(
+        query: String,
+        orderBy: String? = null,
+        author: String? = null,
+        startIndex: Int = 0,
+        maxResults: Int = 20
+    ): List<Book> {
         val apiOrderBy = when(orderBy) {
             "date" -> "newest"
+            "best" -> "relevance"
             else -> null
         }
-        val response = api.getBooks(query, apiOrderBy)
+        val response = api.getBooks(query, apiOrderBy, startIndex, maxResults)
         if (response.isSuccessful) {
             var books = response.body()?.items?.map { item ->
                 Book(
@@ -33,12 +41,29 @@ class BooksRepository @Inject constructor(
                 )
             } ?: emptyList()
 
-            // Если введён фильтр по авторам, оставляем книги, в списке авторов которых встречается введённый текст
+            // Локальная фильтрация по авторам
             author?.takeIf { it.isNotBlank() }?.let { filterText ->
                 books = books.filter { book ->
                     book.authors?.any { it.contains(filterText, ignoreCase = true) } ?: false
                 }
             }
+
+            // Если выбран фильтр "По дате", выполняем локальную сортировку
+            if (orderBy == "date") {
+                books = books.sortedByDescending { book ->
+                    book.publishedDate?.let { dateStr ->
+                        try {
+                            when {
+                                dateStr.length == 4 -> SimpleDateFormat("yyyy", Locale.getDefault()).parse(dateStr)
+                                else -> SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(dateStr)
+                            }
+                        } catch (e: Exception) {
+                            null
+                        }
+                    } ?: Date(0) // Если дата не распознана, считаем её самой ранней
+                }
+            }
+
             return books
         } else {
             throw Exception("Ошибка запроса: ${response.errorBody()?.string()}")
