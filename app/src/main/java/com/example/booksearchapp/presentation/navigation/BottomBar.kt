@@ -1,11 +1,8 @@
 package com.example.booksearchapp.presentation.navigation
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.ripple.LocalRippleTheme
-import androidx.compose.material.ripple.RippleAlpha
-import androidx.compose.material.ripple.RippleTheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,15 +24,8 @@ import com.example.booksearchapp.presentation.ui.theme.Blue
 import com.example.booksearchapp.presentation.ui.theme.LightGray
 import com.example.booksearchapp.presentation.ui.theme.Regular_14
 import com.example.booksearchapp.presentation.ui.theme.White
+import com.example.booksearchapp.utils.NoRippleTheme
 import com.example.linguareader.R
-
-object NoRippleTheme : RippleTheme {
-    @Composable
-    override fun defaultColor() = Color.Unspecified
-
-    @Composable
-    override fun rippleAlpha() = RippleAlpha(0f, 0f, 0f, 0f)
-}
 
 @Composable
 fun BottomBar(navController: NavController) {

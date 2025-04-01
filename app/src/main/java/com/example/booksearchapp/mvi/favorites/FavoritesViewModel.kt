@@ -9,8 +9,10 @@ import com.example.booksearchapp.data.remote.model.Book
 import com.example.booksearchapp.data.repository.BooksRepository
 import com.example.linguareader.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -24,6 +26,8 @@ class FavoritesViewModel @Inject constructor(
 
     private val _state = MutableStateFlow(FavoritesState())
     val state: StateFlow<FavoritesState> = _state.asStateFlow()
+    private val _toastEvent = MutableSharedFlow<Pair<String, Boolean>>()
+    val toastEvent = _toastEvent.asSharedFlow()
 
     init {
         loadFavorites()
@@ -63,6 +67,8 @@ class FavoritesViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    // Эмитируем событие для успешного удаления
+                    _toastEvent.emit(getApplication<Application>().getString(R.string.successfully_removing_favorites) to false)
                     loadFavorites()
                 } catch (e: Exception) {
                     _state.update {
@@ -71,6 +77,8 @@ class FavoritesViewModel @Inject constructor(
                             message = null
                         )
                     }
+                    // Эмитируем событие для ошибки удаления
+                    _toastEvent.emit(getApplication<Application>().getString(R.string.error_removing_favorites) to true)
                 }
             } else { // Иначе – пытаемся добавить в избранное
                 try {
@@ -81,6 +89,8 @@ class FavoritesViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    // Эмитируем событие для успешного добавления
+                    _toastEvent.emit(getApplication<Application>().getString(R.string.successfully_added_favorites) to false)
                     loadFavorites()
                 } catch (e: Exception) {
                     _state.update {
@@ -89,6 +99,8 @@ class FavoritesViewModel @Inject constructor(
                             message = null
                         )
                     }
+                    // Эмитируем событие для ошибки добавления
+                    _toastEvent.emit(getApplication<Application>().getString(R.string.error_added_favorites) to true)
                 }
             }
         }

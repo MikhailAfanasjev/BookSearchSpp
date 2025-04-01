@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import com.example.booksearchapp.mvi.favorites.FavoritesViewModel
 import com.example.booksearchapp.presentation.components.BookItem
 import com.example.booksearchapp.presentation.ui.theme.Black
 import com.example.booksearchapp.presentation.ui.theme.White
+import com.example.booksearchapp.utils.showCustomToast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +43,8 @@ fun FavoritesScreen(
     onBookClick: (String) -> Unit,
     favoritesViewModel: FavoritesViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
+
     // При входе на экран загружаем избранные книги
     LaunchedEffect(Unit) {
         favoritesViewModel.loadFavorites()
@@ -48,8 +52,14 @@ fun FavoritesScreen(
 
     // Получаем актуальное состояние
     val favoritesState by favoritesViewModel.state.collectAsState()
-    // Получаем конфигурацию экрана для расчёта высоты элемента
     val configuration = LocalConfiguration.current
+
+    // Слушаем события Toast через SharedFlow
+    LaunchedEffect(Unit) {
+        favoritesViewModel.toastEvent.collect { (message, isError) ->
+            showCustomToast(context, message, isError)
+        }
+    }
 
     Box(
         modifier = Modifier
