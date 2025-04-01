@@ -91,8 +91,7 @@ import com.example.linguareader.R
 fun SearchScreen(
     navController: NavHostController,
     searchViewModel: SearchViewModel = hiltViewModel(),
-    favoritesViewModel: FavoritesViewModel = hiltViewModel(),
-    onBookClick: (bookId: String) -> Unit = {}
+    favoritesViewModel: FavoritesViewModel = hiltViewModel()
 ) {
     val searchState by searchViewModel.state.collectAsState()
     val favoritesState by favoritesViewModel.state.collectAsState()
